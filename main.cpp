@@ -7,6 +7,39 @@
 using namespace std;
 using namespace cv;
 
+void halftone_cir(Mat img, int size) {
+    // for each block corresponding to one halftone
+    for (int by = 0; by < img.rows / size; by++)
+    for (int bx = 0; bx < img.cols / size; bx++) {
+        // find the mean brightness
+        double mean = 0;
+        int x, y, sx, sy;
+        for (y = by * size, sy = y; y - sy < size; y++)
+        for (x = bx * size, sx = x; x - sx < size; x++) {
+            mean += img.data[y * img.cols + x];
+        }
+        mean /= (size * size);
+
+        // convert brightness to squared radius of halftone
+        double r_sq = (double)((255 - mean) * size * size) / 510;
+
+        // write the halftone cell
+        for (y = by * size, sy = y; y - sy < size; y++)
+        for (x = bx * size, sx = x; x - sx < size; x++) {
+            char color;
+            int mid_y = sy + size/2;
+            int mid_x = sx + size/2;
+            int dis_sq = (x-mid_x) * (x-mid_x) + (y-mid_y) * (y-mid_y);
+            if (dis_sq < r_sq) {
+                color = 0;
+            } else {
+                color = 255;
+            }
+            img.data[y * img.cols + x] = color;
+        }
+    }
+}
+
 void halftone_sq(Mat img, int size) {
 
     // check inputs
@@ -133,9 +166,10 @@ int main(int argc, char** args) {
     }
     
     double angle = 0.261799; // is 15 deg
-    //double angle = 3.14159265/4;
+    //double angle = 3.14159265/4; // is 45 deg
+    //double angle = 0; // is 0 deg
     Mat prep = gray(rotate(input, angle));
-    halftone_sq(prep, 32);
+    halftone_cir(prep, 24);
     Mat output = unrotate(prep, -angle, input.rows, input.cols);
 
     // write out image
