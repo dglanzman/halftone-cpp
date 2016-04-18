@@ -19,7 +19,7 @@ void halftone_sq(Mat img, int size) {
     for (int by = 0; by < img.rows / size; by++)
     for (int bx = 0; bx < img.cols / size; bx++) {
         // find the mean brightness
-        long mean = 0;
+        double mean = 0;
         int x, y, sx, sy;
         for (y = by * size, sy = y; y - sy < size; y++)
         for (x = bx * size, sx = x; x - sx < size; x++) {
@@ -100,6 +100,23 @@ Mat rotate(Mat input, double angle) {
     return output;
 }
 
+Mat unrotate(Mat input, double angle, int original_y, int original_x) {
+    Mat output(original_y, original_x, CV_8UC1);
+    for (int y = 0; y < output.rows; y++)
+    for (int x = 0; x < output.cols; x++) {
+        int cx = x + output.cols / 2;
+        int cy = y + output.cols / 2;
+        double cs = cos(angle);
+        double sn = sin(angle);
+        int rx = round(cx * cs + cy * -sn);
+        int ry = round(cx * sn + cy * cs);
+        rx += input.cols / 2;
+        ry += input.rows / 2;
+        output.data[y * output.cols + x] = input.data[ry * input.cols + rx];
+    }
+    return output;
+}
+
 int main(int argc, char** args) {
     
     // read input data
@@ -114,13 +131,12 @@ int main(int argc, char** args) {
         cout << "Invalid input data" << endl;
         return 0;
     }
-
-    Mat output = gray(rotate(input, 3.14159265/4));
     
-    // write out image
-    imwrite("before.jpg", output);
-    
-    halftone_sq(output, 32);
+    // 0.261799 is 15 deg
+    double angle = 3.14159265/4;
+    Mat prep = gray(rotate(input, angle));
+    halftone_sq(prep, 32);
+    Mat output = unrotate(prep, -angle, input.rows, input.cols);
 
     // write out image
     imwrite("after.jpg", output);
