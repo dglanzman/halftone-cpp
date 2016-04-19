@@ -113,21 +113,15 @@ Mat rotate(Mat input, double angle) {
 
         // if the input pixel coordinates are within the original image,
         // save that pixel data
-        char r, g, b;
+        char c;
         if (rx > 0 && ry > 0 && rx < input.cols && ry < input.rows) {
-            b = input.data[3 * (ry * input.cols + rx)];
-            g = input.data[3 * (ry * input.cols + rx) + 1];
-            r = input.data[3 * (ry * input.cols + rx) + 2];
+            c = input.data[ry * input.cols + rx];
         } else { // otherwise, use white
-            b = 255;
-            g = 255;
-            r = 255;
+            c = 255;
         }
 
         // write the pixel data to the output pixel location
-        output.data[3 * (y * output.cols + x)] = b;
-        output.data[3 * (y * output.cols + x) + 1] = g;
-        output.data[3 * (y * output.cols + x) + 2] = r;
+        output.data[y * output.cols + x] = c;
     }
 
     return output;
@@ -150,6 +144,34 @@ Mat unrotate(Mat input, double angle, int original_y, int original_x) {
     return output;
 }
 
+vector<Mat> split(Mat rgb) {
+    Mat r(rgb.rows, rgb.cols, CV_8UC1);
+    Mat g(rgb.rows, rgb.cols, CV_8UC1);
+    Mat b(rgb.rows, rgb.cols, CV_8UC1);
+    for (int y = 0; y < rgb.rows; y++)
+    for (int x = 0; x < rgb.cols; x++) {
+        r.data[y * r.cols + x] = rgb.data[3 * (y * rgb.cols + x) + 2];
+        g.data[y * r.cols + x] = rgb.data[3 * (y * rgb.cols + x) + 1];
+        b.data[y * r.cols + x] = rgb.data[3 * (y * rgb.cols + x) + 0];
+    }
+    vector<Mat> v;
+    v.push_back(r);
+    v.push_back(g);
+    v.push_back(b);
+    return v;
+}
+
+Mat merge(vector<Mat> rgb) {
+    Mat out(rgb[0].rows, rgb[0].cols, CV_8UC3);
+    for (int y = 0; y < out.rows; y++)
+    for (int x = 0; x < out.cols; x++) {
+        out.data[3 * (y * out.cols + x) + 0] = rgb[2].data[y * out.cols + x];
+        out.data[3 * (y * out.cols + x) + 1] = rgb[1].data[y * out.cols + x];
+        out.data[3 * (y * out.cols + x) + 2] = rgb[0].data[y * out.cols + x];
+    }
+    return out;
+}
+
 int main(int argc, char** args) {
     
     // read input data
@@ -165,12 +187,26 @@ int main(int argc, char** args) {
         return 0;
     }
     
+    vector<Mat> rgb = split(input);
+    vector<double> angles = {0.261799, 1.309, 0.785398};
+    vector<Mat> restored;
+
+    for (int i = 0; i < 3; i++) {
+        Mat rotated = rotate(rgb[i], angles[i]);
+        halftone_cir(rotated, 4);
+        restored.push_back(unrotate(rotated, -angles[i], rgb[i].rows, rgb[i].cols));
+    }
+
+    Mat output = merge(restored);
+
+    /*
     double angle = 0.261799; // is 15 deg
     //double angle = 3.14159265/4; // is 45 deg
     //double angle = 0; // is 0 deg
-    Mat prep = gray(rotate(input, angle));
+    Mat prep = rotate(gray(input), angle);
     halftone_cir(prep, 24);
     Mat output = unrotate(prep, -angle, input.rows, input.cols);
+    */
 
     // write out image
     imwrite("after.jpg", output);
