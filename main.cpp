@@ -199,15 +199,6 @@ int main(int argc, char** args) {
 
     Mat output = merge(restored);
 
-    /*
-    double angle = 0.261799; // is 15 deg
-    //double angle = 3.14159265/4; // is 45 deg
-    //double angle = 0; // is 0 deg
-    Mat prep = rotate(gray(input), angle);
-    halftone_cir(prep, 24);
-    Mat output = unrotate(prep, -angle, input.rows, input.cols);
-    */
-
     // write out image
     imwrite("after.jpg", output);
 }
